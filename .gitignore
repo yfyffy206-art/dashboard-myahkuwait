@@ -10,3 +10,6 @@ firebase.config.json
 
 # ملف مفاتيح Firebase الحقيقي (عام بطبيعته لكنه لا يُرفع)
 اعداداتenv
+
+__pycache__/
+*.pyc
