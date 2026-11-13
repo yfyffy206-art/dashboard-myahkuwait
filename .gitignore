@@ -1,0 +1,12 @@
+node_modules
+dist
+.env
+.env.local
+.env.*.local
+firebase.config.json
+.manus-logs
+*.log
+.DS_Store
+
+# ملف مفاتيح Firebase الحقيقي (عام بطبيعته لكنه لا يُرفع)
+اعداداتenv

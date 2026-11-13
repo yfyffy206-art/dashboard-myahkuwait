@@ -1,0 +1,12 @@
+[build]
+  command = "pnpm build"
+  publish = "dist/public"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[[headers]]
+  for = "/*"
+  values = { Cache-Control = "no-store, no-cache, must-revalidate", Pragma = "no-cache", Expires = "0" }
