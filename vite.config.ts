@@ -214,6 +214,13 @@ const FIREBASE_ENV_FIELDS = {
   measurementId: "FIREBASE_MEASUREMENT_ID",
 } as const;
 
+// Cloudinary (رفع صور المنتجات من اللوحة) — اختيارية: تُحقن فقط إن وُجدت،
+// فلا يفشل البناء في بيئة لا تستخدم رفع الصور.
+const CLOUDINARY_ENV_FIELDS = {
+  cloudName: "CLOUDINARY_CLOUD_NAME",
+  uploadPreset: "CLOUDINARY_UPLOAD_PRESET",
+} as const;
+
 // Optional override file for deployments that cannot use environment variables.
 // Kept out of version control so no credentials live in the source tree.
 const FIREBASE_CONFIG_FILE = "firebase.config.json";
@@ -246,6 +253,11 @@ function resolveFirebaseConfig(envDir: string, mode: string): Record<string, str
       continue;
     }
     config[field] = value;
+  }
+
+  for (const [field, envName] of Object.entries(CLOUDINARY_ENV_FIELDS)) {
+    const value = env[envName]?.trim() || fromFile?.[field]?.trim();
+    if (value) config[field] = value;
   }
 
   if (missing.length > 0) {
